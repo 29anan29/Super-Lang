@@ -1,0 +1,10 @@
+// examples/c_interop.super
+// C 互操作示例 — 调用 printf
+
+extern "C":
+    import "stdio.h"
+    fn printf(format string, ...) int
+
+export "C" fn main() int:
+    printf("Hello from SUPER, %s\n", "world")
+    return 0

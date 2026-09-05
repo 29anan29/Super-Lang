@@ -1,0 +1,27 @@
+// examples/structs.super
+// 结构体与枚举示例
+
+struct Point:
+    x int
+    y int
+
+enum Direction:
+    up, down, left, right
+
+fn distance(a Point, b Point) float:
+    dx = a.x - b.x
+    dy = a.y - b.y
+    return (dx * dx + dy * dy) ** 0.5
+
+export "C" fn main() int:
+    p1 Point
+    p1.x = 0
+    p1.y = 0
+
+    p2 Point
+    p2.x = 3
+    p2.y = 4
+
+    d = distance(p1, p2)
+    out("Distance: ")
+    return 0

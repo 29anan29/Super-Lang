@@ -1,0 +1,6 @@
+// examples/hello.super
+// Hello World — 10 分钟入门
+
+export "C" fn main() int:
+    out("Hello, SUPER!")
+    return 0

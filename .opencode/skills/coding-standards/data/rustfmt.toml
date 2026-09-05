@@ -1,0 +1,7 @@
+# Optional minimal rustfmt configuration.
+# rustfmt's defaults already follow idiomatic Rust style; this keeps tabs out
+# and uses 4-space indentation for consistency with this skill's guidance.
+
+edition = "2021"
+tab_spaces = 4
+newline_style = "Unix"

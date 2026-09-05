@@ -1,4 +1,4 @@
-# PRD：一门“Rust 安全 + Python 好学”的系统级编程语言
+# PRD：SUPER — Safe Unified Programming Easy Reliable
 | 文档信息 | 内容 |
 |---|---|
 | 版本 | v0.1（Draft） |
