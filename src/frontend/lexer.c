@@ -4,11 +4,11 @@
 #include <ctype.h>
 #include "lexer.h"
 
-static const char *keywords[] = {
-    "fn", "pub", "struct", "enum", "match", "if", "else",
-    "for", "unsafe", "import", "extern", "let", "return",
-    "out", "in"
-};
+static int is_keyword(const char *s) {
+    const char *kw[] = {"fn","pub","struct","enum","match","if","else","for","unsafe","import","extern","let","return","out","in"};
+    for (int i = 0; i < 15; i++) if (strcmp(kw[i], s) == 0) return 1;
+    return 0;
+}
 
 static TokenType keyword_to_type(const char *kw) {
     if (strcmp(kw, "fn") == 0) return TOKEN_KEYWORD_FN;
@@ -29,14 +29,7 @@ static TokenType keyword_to_type(const char *kw) {
     return TOKEN_IDENT;
 }
 
-static int is_keyword(const char *s) {
-    for (int i = 0; i < 15; i++) {
-        if (strcmp(keywords[i], s) == 0) return 1;
-    }
-    return 0;
-}
-
-static int skip_comment(const char *source, int pos, int line, int col) {
+static int skip_comment(const char *source, int pos) {
     if (source[pos] == '/' && source[pos + 1] == '/') {
         while (source[pos] != '\n' && source[pos] != '\0') pos++;
         return pos;
@@ -44,12 +37,7 @@ static int skip_comment(const char *source, int pos, int line, int col) {
     if (source[pos] == '/' && source[pos + 1] == '*') {
         pos += 2;
         while (source[pos] != '\0') {
-            if (source[pos] == '*' && source[pos + 1] == '/') {
-                pos += 2;
-                break;
-            }
-            if (source[pos] == '\n') { line++; col = 1; }
-            else col++;
+            if (source[pos] == '*' && source[pos + 1] == '/') { pos += 2; break; }
             pos++;
         }
         return pos;
@@ -62,138 +50,96 @@ Token *lexer_tokenize(const char *source, int *token_count) {
     Token *tokens = malloc(capacity * sizeof(Token));
     int count = 0;
     int i = 0;
-    int line = 1, col = 1;
 
     while (source[i] != '\0') {
-        if (source[i] == ' ' || source[i] == '\t' || source[i] == '\r') {
-            i++; col++; continue;
-        }
-        if (source[i] == '\n') { i++; line++; col = 1; continue; }
-
-        if (source[i] == '/' && (source[i + 1] == '/' || source[i + 1] == '*')) {
-            i = skip_comment(source, i, line, col);
-            continue;
-        }
+        if (source[i] == ' ' || source[i] == '\t' || source[i] == '\r') { i++; continue; }
+        if (source[i] == '\n') { i++; continue; }
+        if (source[i] == '/' && (source[i + 1] == '/' || source[i + 1] == '*')) { i = skip_comment(source, i); continue; }
 
         if (isalpha(source[i]) || source[i] == '_') {
             int start = i;
-            while (isalnum(source[i]) || source[i] == '_') { i++; }
+            while (isalnum(source[i]) || source[i] == '_') i++;
             int len = i - start;
             char *word = malloc(len + 1);
-            strncpy(word, source + start, len);
+            memcpy(word, source + start, len);
             word[len] = '\0';
-
             Token *t = &tokens[count++];
             t->type = keyword_to_type(word);
             t->value = word;
-            t->line = line;
-            t->column = col;
-            col += len;
+            t->line = 1;
+            t->column = start + 1;
             continue;
         }
 
         if (isdigit(source[i])) {
             int start = i;
-            while (isdigit(source[i])) { i++; }
-            if (source[i] == '.' && isdigit(source[i + 1])) {
-                i++;
-                while (isdigit(source[i])) { i++; }
-            }
+            while (isdigit(source[i])) i++;
+            if (source[i] == '.' && isdigit(source[i + 1])) { i++; while (isdigit(source[i])) i++; }
             int len = i - start;
             char *num = malloc(len + 1);
-            strncpy(num, source + start, len);
+            memcpy(num, source + start, len);
             num[len] = '\0';
             Token *t = &tokens[count++];
             t->type = TOKEN_FLOAT;
             t->value = num;
-            t->line = line;
-            t->column = col;
-            col += len;
+            t->line = 1;
+            t->column = start + 1;
             continue;
         }
 
         if (source[i] == '"') {
             i++;
             int start = i;
-            while (source[i] != '"') {
-                if (source[i] == '\\') i++;
-                i++;
-            }
+            while (source[i] != '"') { if (source[i] == '\\') i++; i++; }
             int len = i - start;
             char *str = malloc(len + 1);
-            strncpy(str, source + start, len);
+            memcpy(str, source + start, len);
             str[len] = '\0';
             Token *t = &tokens[count++];
             t->type = TOKEN_STRING;
             t->value = str;
-            t->line = line;
-            t->column = col;
-            i++; col += len + 2;
+            t->line = 1;
+            t->column = start + 1;
+            i++;
             continue;
         }
 
         Token *t = &tokens[count++];
-        t->line = line;
-        t->column = col;
+        t->line = 1;
+        t->column = i + 1;
 
         switch (source[i]) {
-            case '+':
-                if (source[i+1] == '=') { t->type = TOKEN_PLUS_EQ; i++; col+=3; }
-                else if (source[i+1] == '+') { t->type = TOKEN_INC; i++; col+=2; }
-                else { t->type = TOKEN_PLUS; i++; col++; }
-                break;
-            case '-':
-                if (source[i+1] == '=') { t->type = TOKEN_MINUS_EQ; i++; col+=3; }
-                else if (source[i+1] == '-') { t->type = TOKEN_DEC; i++; col+=2; }
-                else { t->type = TOKEN_MINUS; i++; col++; }
-                break;
-            case '*': t->type = TOKEN_STAR; i++; col++; break;
-            case '/': t->type = TOKEN_SLASH; i++; col++; break;
-            case '%': t->type = TOKEN_PERCENT; i++; col++; break;
-            case '=':
-                if (source[i+1] == '=') { t->type = TOKEN_EQ; i++; col+=2; }
-                else { t->type = TOKEN_EQ; i++; col++; }
-                break;
-            case '!': t->type = TOKEN_EXCLAM; i++; col++; break;
-            case '<':
-                if (source[i+1] == '=') { t->type = TOKEN_LTE; i++; col+=2; }
-                else { t->type = TOKEN_LT; i++; col++; }
-                break;
-            case '>':
-                if (source[i+1] == '=') { t->type = TOKEN_GTE; i++; col+=2; }
-                else { t->type = TOKEN_GT; i++; col++; }
-                break;
-            case '&':
-                if (source[i+1] == '&') { t->type = TOKEN_AMP_MUT; i++; col+=2; }
-                else { t->type = TOKEN_AMP; i++; col++; }
-                break;
-            case ':': t->type = TOKEN_COLON; i++; col++; break;
-            case ',': t->type = TOKEN_COMMA; i++; col++; break;
-            case '.': t->type = TOKEN_DOT; i++; col++; break;
-            case '(': t->type = TOKEN_LPAREN; i++; col++; break;
-            case ')': t->type = TOKEN_RPAREN; i++; col++; break;
-            case '{': t->type = TOKEN_LBRACE; i++; col++; break;
-            case '}': t->type = TOKEN_RBRACE; i++; col++; break;
-            case '[': t->type = TOKEN_LBRACKET; i++; col++; break;
-            case ']': t->type = TOKEN_RBRACKET; i++; col++; break;
-            case '#': t->type = TOKEN_HASH; i++; col++; break;
-            case ';': t->type = TOKEN_SEMICOLON; i++; col++; break;
-            default:
-                t->type = TOKEN_ERROR;
-                char *err_val = malloc(2);
-                err_val[0] = source[i];
-                err_val[1] = '\0';
-                t->value = err_val;
-                i++; col++;
-                break;
+            case '+': t->type = TOKEN_PLUS; break;
+            case '-': t->type = TOKEN_MINUS; break;
+            case '*': t->type = TOKEN_STAR; break;
+            case '/': t->type = TOKEN_SLASH; break;
+            case '%': t->type = TOKEN_PERCENT; break;
+            case '=': t->type = TOKEN_EQ; break;
+            case '!': t->type = TOKEN_EXCLAM; break;
+            case '<': t->type = TOKEN_LT; break;
+            case '>': t->type = TOKEN_GT; break;
+            case ':': t->type = TOKEN_COLON; break;
+            case ',': t->type = TOKEN_COMMA; break;
+            case '.': t->type = TOKEN_DOT; break;
+            case '(': t->type = TOKEN_LPAREN; break;
+            case ')': t->type = TOKEN_RPAREN; break;
+            case '{': t->type = TOKEN_LBRACE; break;
+            case '}': t->type = TOKEN_RBRACE; break;
+            case '[': t->type = TOKEN_LBRACKET; break;
+            case ']': t->type = TOKEN_RBRACKET; break;
+            case '#': t->type = TOKEN_HASH; break;
+            case ';': t->type = TOKEN_SEMICOLON; break;
+            default: t->type = TOKEN_ERROR; break;
         }
+        t->value = NULL;
+        i++;
     }
 
     Token *eof = &tokens[count++];
     eof->type = TOKEN_EOF;
-    eof->value = "";
-    eof->line = line;
-    eof->column = col;
+    eof->value = NULL;
+    eof->line = 1;
+    eof->column = i + 1;
 
     *token_count = count;
     return tokens;
@@ -213,22 +159,6 @@ const char *token_type_name(TokenType type) {
         case TOKEN_INT: return "INT";
         case TOKEN_FLOAT: return "FLOAT";
         case TOKEN_STRING: return "STRING";
-        case TOKEN_BOOL: return "BOOL";
-        case TOKEN_KEYWORD_FN: return "fn";
-        case TOKEN_KEYWORD_PUB: return "pub";
-        case TOKEN_KEYWORD_STRUCT: return "struct";
-        case TOKEN_KEYWORD_ENUM: return "enum";
-        case TOKEN_KEYWORD_MATCH: return "match";
-        case TOKEN_KEYWORD_IF: return "if";
-        case TOKEN_KEYWORD_ELSE: return "else";
-        case TOKEN_KEYWORD_FOR: return "for";
-        case TOKEN_KEYWORD_UNSAFE: return "unsafe";
-        case TOKEN_KEYWORD_IMPORT: return "import";
-        case TOKEN_KEYWORD_EXTERN: return "extern";
-        case TOKEN_KEYWORD_LET: return "let";
-        case TOKEN_KEYWORD_RETURN: return "return";
-        case TOKEN_KEYWORD_OUT: return "out";
-        case TOKEN_KEYWORD_IN: return "in";
         default: return "UNKNOWN";
     }
 }
