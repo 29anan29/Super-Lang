@@ -8,7 +8,6 @@ b = in()
 ```
 
 表达式
-
 ```
 a++
 a--
@@ -49,3 +48,32 @@ d float //nil
 *f = 111 //没有 f *int这种
 ```
 
+控制流
+```
+if condition:
+    // statements
+else:
+    // statements
+
+for condition:
+    // statements
+
+break
+continue
+```
+
+结构体
+```
+struct Point:
+    x int
+    y int
+
+p Point
+p.x = 10
+```
+
+导入
+```
+import "module_name"
+import "fmt"
+import "math"
