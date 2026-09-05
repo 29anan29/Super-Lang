@@ -1,0 +1,234 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+#include "lexer.h"
+
+static const char *keywords[] = {
+    "fn", "pub", "struct", "enum", "match", "if", "else",
+    "for", "unsafe", "import", "extern", "let", "return",
+    "out", "in"
+};
+
+static TokenType keyword_to_type(const char *kw) {
+    if (strcmp(kw, "fn") == 0) return TOKEN_KEYWORD_FN;
+    if (strcmp(kw, "pub") == 0) return TOKEN_KEYWORD_PUB;
+    if (strcmp(kw, "struct") == 0) return TOKEN_KEYWORD_STRUCT;
+    if (strcmp(kw, "enum") == 0) return TOKEN_KEYWORD_ENUM;
+    if (strcmp(kw, "match") == 0) return TOKEN_KEYWORD_MATCH;
+    if (strcmp(kw, "if") == 0) return TOKEN_KEYWORD_IF;
+    if (strcmp(kw, "else") == 0) return TOKEN_KEYWORD_ELSE;
+    if (strcmp(kw, "for") == 0) return TOKEN_KEYWORD_FOR;
+    if (strcmp(kw, "unsafe") == 0) return TOKEN_KEYWORD_UNSAFE;
+    if (strcmp(kw, "import") == 0) return TOKEN_KEYWORD_IMPORT;
+    if (strcmp(kw, "extern") == 0) return TOKEN_KEYWORD_EXTERN;
+    if (strcmp(kw, "let") == 0) return TOKEN_KEYWORD_LET;
+    if (strcmp(kw, "return") == 0) return TOKEN_KEYWORD_RETURN;
+    if (strcmp(kw, "out") == 0) return TOKEN_KEYWORD_OUT;
+    if (strcmp(kw, "in") == 0) return TOKEN_KEYWORD_IN;
+    return TOKEN_IDENT;
+}
+
+static int is_keyword(const char *s) {
+    for (int i = 0; i < 15; i++) {
+        if (strcmp(keywords[i], s) == 0) return 1;
+    }
+    return 0;
+}
+
+static int skip_comment(const char *source, int pos, int line, int col) {
+    if (source[pos] == '/' && source[pos + 1] == '/') {
+        while (source[pos] != '\n' && source[pos] != '\0') pos++;
+        return pos;
+    }
+    if (source[pos] == '/' && source[pos + 1] == '*') {
+        pos += 2;
+        while (source[pos] != '\0') {
+            if (source[pos] == '*' && source[pos + 1] == '/') {
+                pos += 2;
+                break;
+            }
+            if (source[pos] == '\n') { line++; col = 1; }
+            else col++;
+            pos++;
+        }
+        return pos;
+    }
+    return pos;
+}
+
+Token *lexer_tokenize(const char *source, int *token_count) {
+    int capacity = 256;
+    Token *tokens = malloc(capacity * sizeof(Token));
+    int count = 0;
+    int i = 0;
+    int line = 1, col = 1;
+
+    while (source[i] != '\0') {
+        if (source[i] == ' ' || source[i] == '\t' || source[i] == '\r') {
+            i++; col++; continue;
+        }
+        if (source[i] == '\n') { i++; line++; col = 1; continue; }
+
+        if (source[i] == '/' && (source[i + 1] == '/' || source[i + 1] == '*')) {
+            i = skip_comment(source, i, line, col);
+            continue;
+        }
+
+        if (isalpha(source[i]) || source[i] == '_') {
+            int start = i;
+            while (isalnum(source[i]) || source[i] == '_') { i++; }
+            int len = i - start;
+            char *word = malloc(len + 1);
+            strncpy(word, source + start, len);
+            word[len] = '\0';
+
+            Token *t = &tokens[count++];
+            t->type = keyword_to_type(word);
+            t->value = word;
+            t->line = line;
+            t->column = col;
+            col += len;
+            continue;
+        }
+
+        if (isdigit(source[i])) {
+            int start = i;
+            while (isdigit(source[i])) { i++; }
+            if (source[i] == '.' && isdigit(source[i + 1])) {
+                i++;
+                while (isdigit(source[i])) { i++; }
+            }
+            int len = i - start;
+            char *num = malloc(len + 1);
+            strncpy(num, source + start, len);
+            num[len] = '\0';
+            Token *t = &tokens[count++];
+            t->type = TOKEN_FLOAT;
+            t->value = num;
+            t->line = line;
+            t->column = col;
+            col += len;
+            continue;
+        }
+
+        if (source[i] == '"') {
+            i++;
+            int start = i;
+            while (source[i] != '"') {
+                if (source[i] == '\\') i++;
+                i++;
+            }
+            int len = i - start;
+            char *str = malloc(len + 1);
+            strncpy(str, source + start, len);
+            str[len] = '\0';
+            Token *t = &tokens[count++];
+            t->type = TOKEN_STRING;
+            t->value = str;
+            t->line = line;
+            t->column = col;
+            i++; col += len + 2;
+            continue;
+        }
+
+        Token *t = &tokens[count++];
+        t->line = line;
+        t->column = col;
+
+        switch (source[i]) {
+            case '+':
+                if (source[i+1] == '=') { t->type = TOKEN_PLUS_EQ; i++; col+=3; }
+                else if (source[i+1] == '+') { t->type = TOKEN_INC; i++; col+=2; }
+                else { t->type = TOKEN_PLUS; i++; col++; }
+                break;
+            case '-':
+                if (source[i+1] == '=') { t->type = TOKEN_MINUS_EQ; i++; col+=3; }
+                else if (source[i+1] == '-') { t->type = TOKEN_DEC; i++; col+=2; }
+                else { t->type = TOKEN_MINUS; i++; col++; }
+                break;
+            case '*': t->type = TOKEN_STAR; i++; col++; break;
+            case '/': t->type = TOKEN_SLASH; i++; col++; break;
+            case '%': t->type = TOKEN_PERCENT; i++; col++; break;
+            case '=':
+                if (source[i+1] == '=') { t->type = TOKEN_EQ; i++; col+=2; }
+                else { t->type = TOKEN_EQ; i++; col++; }
+                break;
+            case '!': t->type = TOKEN_EXCLAM; i++; col++; break;
+            case '<':
+                if (source[i+1] == '=') { t->type = TOKEN_LTE; i++; col+=2; }
+                else { t->type = TOKEN_LT; i++; col++; }
+                break;
+            case '>':
+                if (source[i+1] == '=') { t->type = TOKEN_GTE; i++; col+=2; }
+                else { t->type = TOKEN_GT; i++; col++; }
+                break;
+            case '&':
+                if (source[i+1] == '&') { t->type = TOKEN_AMP_MUT; i++; col+=2; }
+                else { t->type = TOKEN_AMP; i++; col++; }
+                break;
+            case ':': t->type = TOKEN_COLON; i++; col++; break;
+            case ',': t->type = TOKEN_COMMA; i++; col++; break;
+            case '.': t->type = TOKEN_DOT; i++; col++; break;
+            case '(': t->type = TOKEN_LPAREN; i++; col++; break;
+            case ')': t->type = TOKEN_RPAREN; i++; col++; break;
+            case '{': t->type = TOKEN_LBRACE; i++; col++; break;
+            case '}': t->type = TOKEN_RBRACE; i++; col++; break;
+            case '[': t->type = TOKEN_LBRACKET; i++; col++; break;
+            case ']': t->type = TOKEN_RBRACKET; i++; col++; break;
+            case '#': t->type = TOKEN_HASH; i++; col++; break;
+            case ';': t->type = TOKEN_SEMICOLON; i++; col++; break;
+            default:
+                t->type = TOKEN_ERROR;
+                char *err_val = malloc(2);
+                err_val[0] = source[i];
+                err_val[1] = '\0';
+                t->value = err_val;
+                i++; col++;
+                break;
+        }
+    }
+
+    Token *eof = &tokens[count++];
+    eof->type = TOKEN_EOF;
+    eof->value = "";
+    eof->line = line;
+    eof->column = col;
+
+    *token_count = count;
+    return tokens;
+}
+
+void lexer_free_tokens(Token *tokens, int count) {
+    for (int i = 0; i < count; i++) {
+        if (tokens[i].value) free((void *)tokens[i].value);
+    }
+    free(tokens);
+}
+
+const char *token_type_name(TokenType type) {
+    switch (type) {
+        case TOKEN_EOF: return "EOF";
+        case TOKEN_IDENT: return "IDENT";
+        case TOKEN_INT: return "INT";
+        case TOKEN_FLOAT: return "FLOAT";
+        case TOKEN_STRING: return "STRING";
+        case TOKEN_BOOL: return "BOOL";
+        case TOKEN_KEYWORD_FN: return "fn";
+        case TOKEN_KEYWORD_PUB: return "pub";
+        case TOKEN_KEYWORD_STRUCT: return "struct";
+        case TOKEN_KEYWORD_ENUM: return "enum";
+        case TOKEN_KEYWORD_MATCH: return "match";
+        case TOKEN_KEYWORD_IF: return "if";
+        case TOKEN_KEYWORD_ELSE: return "else";
+        case TOKEN_KEYWORD_FOR: return "for";
+        case TOKEN_KEYWORD_UNSAFE: return "unsafe";
+        case TOKEN_KEYWORD_IMPORT: return "import";
+        case TOKEN_KEYWORD_EXTERN: return "extern";
+        case TOKEN_KEYWORD_LET: return "let";
+        case TOKEN_KEYWORD_RETURN: return "return";
+        case TOKEN_KEYWORD_OUT: return "out";
+        case TOKEN_KEYWORD_IN: return "in";
+        default: return "UNKNOWN";
+    }
+}
