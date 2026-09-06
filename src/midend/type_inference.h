@@ -1,3 +1,8 @@
+/*
+ * type_inference.h — type_inference for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef TYPE_INFERENCE_H
 #define TYPE_INFERENCE_H
 

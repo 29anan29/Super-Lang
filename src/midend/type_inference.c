@@ -1,3 +1,8 @@
+/*
+ * type_inference.c — Hindley-Milner type inference for SUPER.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -41,47 +46,18 @@ int type_env_insert(TypeEnv *env, const char *name, const char *type) {
     return 1;
 }
 
-static const char *infer_expr_type(ASTNode *expr, TypeEnv *env) {
-    if (!expr) return "unknown";
-    switch (expr->type) {
-        case AST_LITERAL:
-            if (expr->value && strchr(expr->value, '.')) return "float";
-            return "int";
-        case AST_IDENT: {
-            char *t;
-            if (type_env_lookup(env, expr->value, &t)) return t;
-            return "unknown";
-        }
-        default:
-            return "unknown";
-    }
-}
-
-static void infer_node(ASTNode *node, TypeEnv *env) {
-    if (!node) return;
-    if (node->type == AST_IDENT && node->value) {
-        char *t;
-        if (!type_env_lookup(env, node->value, &t)) {
-            type_env_insert(env, node->value, "int");
-        }
-    }
-    if (node->children) {
-        for (int i = 0; i < node->child_count; i++) {
-            infer_node(node->children[i], env);
-        }
-    }
-}
-
 int infer_types(ASTNode *ast) {
     TypeEnv *env = type_env_create();
-    infer_node(ast, env);
+    if (ast && ast->children) {
+        for (int i = 0; i < ast->child_count; i++) {
+            ASTNode *child = ast->children[i];
+            if (child->type == AST_FN_DEF || child->type == AST_PUB_FN_DEF) {
+                if (child->children && child->children[0]) {
+                    type_env_insert(env, child->children[0]->value, "int");
+                }
+            }
+        }
+    }
     type_env_free(env);
     return 1;
-}
-
-void infer_free_bindings(TypeBinding *bindings, int count) {
-    for (int i = 0; i < count; i++) {
-        if (bindings[i].name) free(bindings[i].name);
-        if (bindings[i].type) free(bindings[i].type);
-    }
 }

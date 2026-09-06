@@ -1,3 +1,8 @@
+/*
+ * parser.h — parser for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef PARSER_H
 #define PARSER_H
 

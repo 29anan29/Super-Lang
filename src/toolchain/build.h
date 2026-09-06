@@ -1,3 +1,8 @@
+/*
+ * build.h — build for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef BUILD_H
 #define BUILD_H
 

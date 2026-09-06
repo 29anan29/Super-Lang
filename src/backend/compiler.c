@@ -1,3 +1,8 @@
+/*
+ * compiler.c — compiler for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +53,7 @@ int compile_file(const char *source_path, const char *output_prefix) {
     snprintf(c_file, sizeof(c_file), "%s.c", output_prefix);
     if (!c_codegen_generate(ast, c_file)) {
         fprintf(stderr, "Error: C code generation failed\n");
+        ast_free(ast);
         return 0;
     }
 
@@ -55,6 +61,7 @@ int compile_file(const char *source_path, const char *output_prefix) {
     snprintf(header, sizeof(header), "%s.h", output_prefix);
     c_codegen_generate_header(ast, header);
 
+    ast_free(ast);
     printf("Generated: %s, %s\n", c_file, header);
     return 1;
 }

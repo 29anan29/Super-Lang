@@ -1,10 +1,14 @@
+/*
+ * main.c — SUPER compiler entry point.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 void print_banner(void) {
-    printf("SUPER Compiler v0.1\n");
-    printf("Safe Unified Programming Easy Reliable\n");
+    printf("SUPER Compiler v0.1 — Safe Unified Programming Easy Reliable\n");
 }
 
 extern int compile_file(const char *source_path, const char *output_prefix);
@@ -22,7 +26,7 @@ int main(int argc, char *argv[]) {
 
     const char *filename = strrchr(source_file, '/');
     filename = filename ? filename + 1 : source_file;
-    
+
     char prefix[1024];
     strncpy(prefix, filename, sizeof(prefix) - 1);
     prefix[sizeof(prefix) - 1] = '\0';

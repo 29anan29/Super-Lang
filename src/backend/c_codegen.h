@@ -1,3 +1,8 @@
+/*
+ * c_codegen.h — c_codegen for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef C_CODEGEN_H
 #define C_CODEGEN_H
 

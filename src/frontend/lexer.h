@@ -1,3 +1,8 @@
+/*
+ * lexer.h — Token types and lexer interface for the SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef LEXER_H
 #define LEXER_H
 
@@ -57,7 +62,6 @@ typedef enum {
     TOKEN_HASH,
     TOKEN_EXCLAM,
     TOKEN_AMP,
-    TOKEN_AMP_MUT,
     TOKEN_SEMICOLON,
     TOKEN_ERROR
 } TokenType;

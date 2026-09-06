@@ -1,3 +1,8 @@
+/*
+ * ssa.h — ssa for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef SSA_H
 #define SSA_H
 

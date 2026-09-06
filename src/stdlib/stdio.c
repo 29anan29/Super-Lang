@@ -1,3 +1,9 @@
+/*
+ * stdio.c — SUPER standard I/O bindings.
+ */
+/* SPDX-License-Identifier: MIT */
+
+#include <stdio.h>
 #include <stdarg.h>
 
 int super_printf(const char *format, ...) {

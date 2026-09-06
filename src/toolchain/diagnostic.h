@@ -1,3 +1,8 @@
+/*
+ * diagnostic.h — diagnostic for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef DIAGNOSTIC_H
 #define DIAGNOSTIC_H
 

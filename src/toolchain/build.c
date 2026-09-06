@@ -1,6 +1,12 @@
+/*
+ * build.c — Build system integration for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "build.h"
 
 int build_project(const char *project_dir) {
     char cmd[1024];

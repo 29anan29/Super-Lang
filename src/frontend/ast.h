@@ -1,3 +1,8 @@
+/*
+ * ast.h — ast for SUPER compiler.
+ */
+/* SPDX-License-Identifier: MIT */
+
 #ifndef AST_H
 #define AST_H
 
